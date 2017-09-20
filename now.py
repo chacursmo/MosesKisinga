@@ -6,76 +6,205 @@
 from math import log2
 
 def main():
+    
+    D = getData("trainingInstances.csv","targets.txt")
+    
+    R = ID3(D[0],D[1],[0,1,2,3,4,5,6])
+
+    T = getData("testInstances.csv","dontdo")
+    T = T[0]
+
+    for idx in range(len(T)):
+        if predict(T[idx],R):
+            print (1)
+        else:
+            print(0)
+        
+
+    
+def traverse(n):
+    if len(n.children) == 0:
+        printNode(n)
+    else :
+        for c in n.children:
+            traverse(c)
+
+def printNode(n):
+    print ("--------")
+    print("Label is:" +str(n.label))
+    print("# of Children:" +str(len(n.children)))
+    print("Attribute Value is:" +str(n.attribute))
+    print("Test attribute value is:" +str(n.test_attribute_value))
+    print("+++++++++")
+    
+def predict(x,n):
+    if n.label != None:
+        return n.label
+    else :
+        temp = x[n.attribute]
+        nc = None
+        for c in n.children:
+            nc = c
+            if temp == c.test_attribute_value:
+                break
+        return predict(x,nc)
+
+    
 
 
-    a = buildtree()
-#    printTree(a[0])
+
+            
+        
+        
+
 
 class Node(object):
-    def __init__(self,data):
-        self.data = data
+    def __init__(self,label=None,attribute=None,tav=None):
+        self.label = label
         self.children = []
-
+        self.attribute = attribute
+        self.test_attribute_value = tav
+        
     def add_child(self,obj):
         self.children.append(obj)
 
+    def set_test_attribute_value(self,tav):
+        self.test_attribute_value = tav
+        
+    def set_label(self,label):
+        self.label = label
+        
+    def set_attribute(self,attribute):
+        self.attribute = attribute
 
 
-def buildtree():
-    root = []
-    oldAttributes = []
-    f = open("foo.csv","r")
 
+
+
+def getData(ex,ta):
+    f = open(ex,"r")
     X = []
     T = []
     for l in f:
         l=l.strip()
-        X.append(l.split(" "))
-
+        l = l.split(" ")
+        l = [ int(x) for x in l]
+        X.append(l)
     f.close()
-
-    f = open("moo","r")
-
+    if ta == "dontdo":
+        return [X,None]
+    f = open(ta,"r")
     for l in f:
         l = l.strip()
         T.append(int(l))
     f.close()
-    X2 = X
-    T2 = T
-    b = bestA(X2,T2,oldAttributes)
-    oldAttributes.append(b)
-    nN = Node(b)
-    root.append(nN)
-    currNode = nN
-    print(nN.data)
-    print("-----")
-    #here
-    A = getCol(X2,b)
-    valsA = set(A)
-    vAHos = list(valsA)
-    for cidx in range(len(vAHos)):
-        srt = []
-        srt_T = []
-        for mooidx in range(len(X2)):
-            if int(X2[mooidx][nN.data]) == int(vAHos[cidx]):
-                srt.append(X2[mooidx])
-                srt_T.append(T2[mooidx])
-        if len(srt) == 0:
-            currNode.add_child(Node(1000))
-        else :
-            ayu = bestA(srt,srt_T,oldAttributes)
-            oldAttributes.append(ayu)
-            nNayu = Node(ayu)
-            currNode.add_child(nNayu)
+    return [X,T]
 
-    for c in currNode.children:
-        print (c.data, end=" ")
-    print ("\n------")
+
+def ID3(examples, Target_attribute, Attributes):
+    root = Node()
+    state = True
+    for idx in range(len(Target_attribute)):
+        if state and Target_attribute[idx] == False:
+            state = False
+    if state:
+        root.set_label(True)
+        return root
+    state = True
+    for idx in range(len(Target_attribute)):
+        if state and Target_attribute[idx] == True:
+            state = False
+    if state:
+        root.set_label(False)
+        return root
+    if len(Attributes) == 0:
+        numPos = 0
+        for idx in range(len(Target_attribute)):
+            if Target_attribute[idx] == 1:
+                numPos+=1
+        numNeg = len(Target_attribute)-numPos
+        if numPos > numNeg:
+            root.set_label(True)
+            return root
+        else:
+            root.set_label(False)
+            return root
+
+
+    A = bestA(examples,Target_attribute,Attributes)
+    root.set_attribute(A)
+    workCol = getCol(examples,A)
+    possibleValues = list(set(workCol))
+    for idx in range(len(possibleValues)):
+        examples_vi = []
+        T_a_vi = []
+        for idx2 in range(len(examples)):
+            if examples[idx2][A] == possibleValues[idx]:
+                examples_vi.append(examples[idx2])
+                T_a_vi.append(Target_attribute[idx2])
+        if len(examples_vi) == 0:
+            newNode = Node()
+            newNode.set_test_attribute_value(possibleValues[idx])
+            root.add_child(newNode)
+            numPos = 0
+            for idx in range(len(Target_attribute)):
+                if Target_attribute[idx] == 1:
+                    numPos+=1
+            numNeg = len(Target_attribute)-numPos
+            if numPos > numNeg:
+                newNode.set_label(True)
+            elif numNeg > numPos:
+                newNode.set_label(False)
+            else:
+                raise ValueError("End of Program")
+        else :
+            newAttributes = Attributes[:]
+            newAttributes.remove(A)
+            onDown = ID3(examples_vi,T_a_vi,newAttributes)
+            onDown.set_test_attribute_value(possibleValues[idx])
+            root.add_child(onDown)
+
+    return root
+    
+
+
+def treeTest(X):
+    if len(X) == 0:
+        return False
+    return True
+
+def Learn(X,T):
+    usedAttrib = []
+    root = []
+    hiGainIdx = bestA(X,T,usedAttrib)
+    usedAttrib.append(hiGainIdx)
+    currN = Node(hiGainIdx)
+    if len(root) == 0:
+        root.append(currN)
+    workCol = getCol(X,hiGainIdx)
+    setWorkCol = set(workCol)
+    setList = list(setWorkCol)
+    for idx in range(len(setList)):
+        divyUp = []
+        divyUp_T = []
+        for idx2 in range(len(X)):
+            if int(X[idx2][currN.data]) == int(setList[idx]):
+                divyUp.append(X[idx2])
+                divyUp_T.append(T[idx2])
+                if len(srt) == 0:
+                    currNode.set_leaf_value(1) # not corect
+                else :
+                    ayu = bestA(srt,srt_T,oldAttributes)
+                    oldAttributes.append(ayu)
+                    nNayu = Node(ayu)
+                    currNode.add_child(nNayu)
 
     for c in currNode.children:
         A = getCol(X2,c.data)        
         valsA = set(A)
         vAHos = list(valsA)
+        foziz = []
+
         for cidx in range(len(vAHos)):
             srt = []
             srt_T = []
@@ -84,20 +213,14 @@ def buildtree():
                     srt.append(X2[mooidx])
                     srt_T.append(T2[mooidx])
             if len(srt) == 0:
-                c.add_child(Node(1000))
+                c.set_leaf_value(1) #not correct
             else :
                 ayu = bestA(srt,srt_T,oldAttributes)
                 oldAttributes.append(ayu)
                 nNayu = Node(ayu)
                 c.add_child(nNayu)
 
-    for curr in currNode.children:
-        for c in curr.children:
-            print (c.data,end=" ")
-        print ("\n******")
-    print("&&&")
-
-
+                
 
     return root
     
@@ -105,10 +228,12 @@ def buildtree():
 
     
 def bestA(X,T,o):
+    if len(o) == 1:
+        return o[0]
     maxG = 0
     maxGidx = 0
     for idx in range(len(X[0])):
-        if idx in o:
+        if idx not in o:
             pass
         else :
             a = getCol(X,idx)

@@ -1,17 +1,36 @@
 #!/usr/local/bin/python3
 
+from math import log2
 
 def main():
 
 
-    d = getData()
+    d = getTest()
+
+    for line in d:
+        for item in line:
+            print(str(item)+" ",end="")
+        print("")
 
 
-    v = d[0]
-    d = d[1]
+#    v = d[0]
+ #   d = d[1]
+#    g = open("moo","w")
+#    for l in v:
+#        g.write(str(l))
+#        g.write('\n')
+#    g.close()
+    
+#    f = open("foo.csv","w")
+ #   for l in d:
+  #      for i in l:
+   #         f.write(str(i))
+    #        f.write(' ')
+     #   f.write('\n')
 
+#    f.close()
 
-    T = buildTree(d,v)
+#    T = buildTree(d,v)
 
 
 def otherComment():
@@ -36,8 +55,9 @@ def buildTree(dat,val):
     entropy = []
 
     for i in range(len(A)):
-        entropy.append(getEntropy(A[i]))
+        entropy.append(getEntropy(A[i],val))
 
+    print (entropy)
     
     #find min entropy
 
@@ -54,13 +74,95 @@ def buildTree(dat,val):
 
     return A
 
+def getEntropy(a,val):
+
+    sA = set(a)
+
+    lsA = list(sA)
+    olsA = [0 for x in range(len(lsA))]
     
+    for i in range(len(lsA)):
+        olsA[i] = a.count(lsA[i])
+
+    e = 0.0
+    for i in range(len(lsA)):
+        temp = olsA[i]/len(a)
+        e += (temp)*log2(.5)
+        
+
+
+    pplus = val.count(1)/len(val)
+    pminus = val.count(0)/len(val)
+
+    actualEntropy = (-(pplus*log2(pplus)) - (pminus*log2(pminus)))
+#    print(actualEntropy,e)
+    gain = actualEntropy - e
+    return gain
+
+
+def getTest():
+    f = open("../data/test.csv","r")
+    colsName = f.readline()
+    data = []
+    for l in f:
+        l = l.strip()
+        l = l.split('"')
+
+        if len(l) == 3:
+            l = l[0]+l[2]
+        elif len(l) == 7:
+            l = l[0]+l[6]
+        l = l.split(",")
+
+
+        l.pop(2) 
+
+        
+        if l[2] == 'male':
+            l[2] = 0
+        else :
+            l[2] = 1
+        l[0] = int(l[0])
+        l[1] = int(l[1])
+        if l[3] != '':
+            l[3] = int(float(l[3]))
+        else :
+            l[3]=200 #oh this causes a bug later on
+        l[4] = int(l[4])
+        l[5] = int(l[5])
+        l.pop(6)
+
+        if l[6] == '':
+            l[6]=10
+
+        l[6] = int(float(l[6]))
+        l.pop(7)
+        if l[7] == 'Q':
+            l[7] = 0
+        elif l[7] == 'C':
+            l[7] = 1
+        elif l[7] == 'S':
+            l[7] = 2
+        else:
+            l[7] = 3
+        l.pop(0)
+        data.append(l)
+
+    return data
+        
 
 def getData():
     f = open("../data/train.csv","r")
 
     colsName = f.readline()
-
+    cn = colsName
+    cn = cn.strip()
+    cn = cn.split(",")
+    cn.pop(3)
+    cn.pop(-2)
+    cn.pop(0)
+    cn.pop(0)
+    cn.pop(-3)
     data = []
     targetValues = []
     for l in f:
@@ -74,9 +176,10 @@ def getData():
 
         l = l.split(",")
 
-        l.pop(3) 
 
-        targetValues.append(l.pop(1))
+
+        l.pop(3) 
+        targetValues.append(int(l.pop(1)))
         
         if l[2] == 'male':
             l[2] = 0
@@ -88,7 +191,7 @@ def getData():
             
             l[3] = int(float(l[3]))
         else :
-            l[3]=200
+            l[3]=200 #oh this causes a bug later on
         l[4] = int(l[4])
         l[5] = int(l[5])
         l.pop(6) 
@@ -102,7 +205,10 @@ def getData():
             l[7] = 2
         else:
             l[7] = 3
+        l.pop(0)
         data.append(l)
+        print (cn)
+        print (l)
 
     return [targetValues,data]
         
