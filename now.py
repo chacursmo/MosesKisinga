@@ -3,17 +3,110 @@
 ###TODO Deal with Missing Values
 #   The 200 year old problem
 
+import random
+import copy
+
 from math import log2
 
 def main():
     
     D = getData("trainingInstances.csv","targets.txt")
+
+    goon(D)
     
-    R = ID3(D[0],D[1],[0,1,2,3,4,5,6])
+def justOnPort(D):
+    X = D[0]
+    T = D[1]
+    lst = []
+    th = 0
+    tw = 0
+    on = 0
+    zr = 0
+    for idx in range(len(X)):
+        lst.append(X[idx][5])
+        if X[idx][6] == 3:
+            if T[idx] == 1:
+                th+=1
+        elif X[idx][6] == 2:
+            if T[idx] == 1:
+                tw+=1
+        elif X[idx][6] == 1:
+            if T[idx] == 1:
+                on+=1
+        elif X[idx][6] == 0:
+            if T[idx] == 1:
+                zr+=1
+
+    nvq = list(set(lst))
+    print (len(nvq))
+
+    
+def goon(D):
+    C = list(zip(D[0],D[1]))
+    random.shuffle(C)
+    a,b = zip(*C)
+    l = int(len(a)/3)
+    validA=a[l:]
+    trainA=a[:l]
+    validB=b[l:]
+    trainB=b[:l]
+
+    R = ID3(D[0],D[1],[0,1,2,3,4,5,6],True)
 
     T = getData("testInstances.csv","dontdo")
     T = T[0]
 
+    results(T,R)
+
+
+
+
+    
+    
+def pruning(D,R,a):
+    T3 = copy.deepcopy(R)
+    if len(T3.children) == 0:
+        return T3
+    else :
+        for c in T3.children:
+            temp = c
+            T3.children.remove(c)
+            vhu = numbertest(D,T3)
+            if vhu > a:
+                pass
+            else :
+                T3.children.append(c)
+            return pruning(D,c,a)
+
+
+    
+def numbertest(D,R):
+    result = 0
+    for idx in range(len(D[0])):
+        if predict(D[0][idx],R) == D[1][idx]:
+            result += 1
+
+    return result/len(D[0])
+    
+
+
+    
+    
+
+    
+def testing(D,R):
+    result = 0
+    for idx in range(len(D[0])):
+        if predict(D[0][idx],R) == D[1][idx]:
+            result += 1
+
+    print (str(result/(len(D[0]))*100)+"%")
+    
+
+
+
+
+def results(T,R):
     for idx in range(len(T)):
         if predict(T[idx],R):
             print (1)
@@ -24,7 +117,8 @@ def main():
     
 def traverse(n):
     if len(n.children) == 0:
-        printNode(n)
+        print(1)
+#        printNode(n)
     else :
         for c in n.children:
             traverse(c)
@@ -47,7 +141,10 @@ def predict(x,n):
             nc = c
             if temp == c.test_attribute_value:
                 break
-        return predict(x,nc)
+
+        a = predict(x,nc)
+
+        return a
 
     
 
@@ -101,7 +198,7 @@ def getData(ex,ta):
     return [X,T]
 
 
-def ID3(examples, Target_attribute, Attributes):
+def ID3(examples, Target_attribute, Attributes,state):
     root = Node()
     state = True
     for idx in range(len(Target_attribute)):
@@ -132,6 +229,9 @@ def ID3(examples, Target_attribute, Attributes):
 
 
     A = bestA(examples,Target_attribute,Attributes)
+    if state:
+        A = 1 #sneaky bit here
+        state = False
     root.set_attribute(A)
     workCol = getCol(examples,A)
     possibleValues = list(set(workCol))
@@ -160,7 +260,7 @@ def ID3(examples, Target_attribute, Attributes):
         else :
             newAttributes = Attributes[:]
             newAttributes.remove(A)
-            onDown = ID3(examples_vi,T_a_vi,newAttributes)
+            onDown = ID3(examples_vi,T_a_vi,newAttributes,state)
             onDown.set_test_attribute_value(possibleValues[idx])
             root.add_child(onDown)
 
@@ -223,11 +323,25 @@ def Learn(X,T):
                 
 
     return root
-    
+
+
+def I(p):
+    pass
+
+
+def distance(p_a,p_b):
+    return (I(p_b/p_a) + I(p_a/p_b))
+
+def bestA(X,T,o):
+    return bestAG(X,T,o)
     
 
+def splitInfo(S,A):
+    pass
+
+
     
-def bestA(X,T,o):
+def bestAG(X,T,o):
     if len(o) == 1:
         return o[0]
     maxG = 0
@@ -284,15 +398,12 @@ def gain(x,t):
     for idx in range(len(A)):
         A_int.append(int(list(A)[idx]))
     V = [0 for x in range(len(A))]
-
     Asort = sorted(A_int)
     for idx in range(len(x)):
         cv = int(x[idx])
         wwalf = Asort.index(cv)
         V[wwalf]+=1
-
     g = 0
-    
     for idx in range(len(V)):
         S_v_t = []
         for ij in range(len(x)):
@@ -300,7 +411,6 @@ def gain(x,t):
                 S_v_t.append(t[ij])
             e = entropy(S_v_t)
         g+=(V[idx]/len(x))*e
-
     return entropy(t)-g
             
 
